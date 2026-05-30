@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import type { LoginResponse } from '$lib/types';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
