@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMINISTRADOR
+  LIDER_PROCESO
+  AUDITOR
+  CONSULTA
+}
+
+enum TipoControl {
+  PREVENTIVO
+  DETECTIVO
+  CORRECTIVO
+}
+
+enum EstadoRiesgo {
+  IDENTIFICADO
+  EVALUADO
+  EN_TRATAMIENTO
+  ACEPTADO
+  CERRADO
+}
+
+enum EstadoPlan {
+  ABIERTO
+  EN_EJECUCION
+  VENCIDO
+  COMPLETADO
+  CANCELADO
+}
+
+model Usuario {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  passwordHash  String
+  nombre        String
+  cargo         String?
+  rol           Rol          @default(LIDER_PROCESO)
+  activo        Boolean      @default(true)
+  dependenciaId String?
+  dependencia   Dependencia? @relation(fields: [dependenciaId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  activosResponsable Activo[]
+  controles          Control[]
+  evaluaciones       EvaluacionRiesgo[]
+  auditorias         Auditoria[]
+  planesAccion       PlanAccion[]
+}
+
+model Macroproceso {
+  id            String    @id @default(cuid())
+  nombre        String
+  dependenciaId String
+  dependencia   Dependencia @relation(fields: [dependenciaId], references: [id])
+  activo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  procesos Proceso[]
+  activos  Activo[]
+}
+
+model Proceso {
+  id             String       @id @default(uuid())
+  nombre         String
+  nivel          String
+  codigo         String?      @unique
+  activo         Boolean      @default(true)
+  macroprocesoId String
+  macroproceso   Macroproceso @relation(fields: [macroprocesoId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  riesgos     Riesgo[]
+  activos     Activo[]
+  subprocesos Subproceso[]
+}
+
+model Subproceso {
+  id        String   @id @default(cuid())
+  nombre    String
+  procesoId String
+  proceso   Proceso  @relation(fields: [procesoId], references: [id])
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  activos Activo[]
+}
+
+model Dependencia {
+  id        String   @id @default(uuid())
+  nombre    String   @unique
+  codigo    String?  @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  usuarios      Usuario[]
+  macroprocesos Macroproceso[]
+  activos       Activo[]
+}
+
+model Activo {
+  id String @id @default(uuid())
+
+  // ===== Identificación =====
+  identificador String?
+  nombre        String
+  tipo          String
+  subTipo       String?
+  descripcion   String?
+
+  // ===== Organización =====
+  macroprocesoId String?
+  macroproceso   Macroproceso? @relation(fields: [macroprocesoId], references: [id])
+  procesoId      String?
+  proceso        Proceso?      @relation(fields: [procesoId], references: [id])
+  subprocesoId   String?
+  subprocesoRel  Subproceso?   @relation(fields: [subprocesoId], references: [id])
+  dependenciaId  String
+  dependencia    Dependencia   @relation(fields: [dependenciaId], references: [id])
+
+  // ===== Gestión documental =====
+  codigoGestionDocumental String?
+  serieDocumental         String?
+  subserieDocumental      String?
+
+  // ===== Responsables =====
+  responsableId    String
+  responsable      Usuario @relation(fields: [responsableId], references: [id])
+  propietarioCargo String?
+  custodioCargo    String?
+
+  // ===== Fechas =====
+  fechaGeneracion     DateTime?
+  fechaIngresoArchivo DateTime?
+
+  // ===== Características técnicas =====
+  soporteRegistro   String?
+  medioConservacion String?
+  formato           String?
+  idioma            String?
+
+  // ===== Clasificación ISO 27001 =====
+  confidencialidad String?
+  valorC           Int?
+  integridad       String?
+  valorI           Int?
+  disponibilidad   String?
+  valorD           Int?
+  criticidad       String?
+
+  // ===== Información clasificada y reservada =====
+  informacionPublicada          Boolean?
+  lugarConsulta                 String?
+  objetoLegitimoExcepcion       String?
+  fundamentoConstitucionalLegal String?
+  fundamentoJuridicoExcepcion   String?
+  excepcionTotalParcial         String?
+  fechaClasificacion            DateTime?
+  tiempoClasificacion           String?
+
+  // ===== Datos personales =====
+  contieneDatosPersonales       Boolean?
+  contieneDatosMenores          Boolean?
+  tiposDatosPersonales          String?
+  finalidadTratamiento          String?
+  existeAutorizacionTratamiento Boolean?
+
+  activo Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  riesgos Riesgo[]
+}
+
+model Riesgo {
+  id            String       @id @default(uuid())
+  nombre        String
+  descripcion   String?
+  causa         String
+  consecuencia  String
+  clasificacion String
+  tipoRiesgo    String?
+  estado        EstadoRiesgo @default(IDENTIFICADO)
+
+  procesoId String
+  proceso   Proceso @relation(fields: [procesoId], references: [id])
+  activoId  String
+  activo    Activo  @relation(fields: [activoId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  evaluaciones EvaluacionRiesgo[]
+  planesAccion PlanAccion[]
+}
+
+model EvaluacionRiesgo {
+  id       String @id @default(uuid())
+  riesgoId String
+  riesgo   Riesgo @relation(fields: [riesgoId], references: [id], onDelete: Cascade)
+
+  probabilidad    Int
+  impacto         Int
+  riesgoInherente Int
+  riesgoResidual  Int?
+  nivelResidual   String?
+
+  evaluadoPorId   String
+  evaluadoPor     Usuario  @relation(fields: [evaluadoPorId], references: [id])
+  fechaEvaluacion DateTime @default(now())
+  observaciones   String?
+
+  createdAt DateTime @default(now())
+
+  controles Control[]
+}
+
+model Control {
+  id            String           @id @default(uuid())
+  nombre        String
+  descripcion   String?
+  tipoControl   TipoControl
+  frecuencia    String
+  eficacia      Int
+  responsableId String
+  responsable   Usuario          @relation(fields: [responsableId], references: [id])
+  evaluacionId  String
+  evaluacion    EvaluacionRiesgo @relation(fields: [evaluacionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  evidencias Evidencia[]
+}
+
+model Evidencia {
+  id             String   @id @default(uuid())
+  controlId      String
+  control        Control  @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  nombreOriginal String
+  nombreArchivo  String
+  mimeType       String
+  tamano         Int
+  rutaArchivo    String
+  createdAt      DateTime @default(now())
+}
+
+model PlanAccion {
+  id            String     @id @default(uuid())
+  riesgoId      String
+  riesgo        Riesgo     @relation(fields: [riesgoId], references: [id], onDelete: Cascade)
+  descripcion   String
+  responsableId String
+  responsable   Usuario    @relation(fields: [responsableId], references: [id])
+  fechaCreacion DateTime   @default(now())
+  fechaLimite   DateTime
+  fechaCierre   DateTime?
+  estado        EstadoPlan @default(ABIERTO)
+  observaciones String?
+}
+
+model Auditoria {
+  id            String   @id @default(uuid())
+  usuarioId     String
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+  accion        String
+  entidad       String
+  entidadId     String
+  valorAnterior String?
+  valorNuevo    String?
+  direccionIp   String?
+  createdAt     DateTime @default(now())
+}

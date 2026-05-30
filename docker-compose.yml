@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: riesgo-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: riesgo_db
+      POSTGRES_USER: riesgo_user
+      POSTGRES_PASSWORD: riesgo_pass_2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - riesgo-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: riesgo-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@riesgo.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    depends_on:
+      - postgres
+    networks:
+      - riesgo-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: riesgo-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://riesgo_user:riesgo_pass_2026@postgres:5432/riesgo_db
+      JWT_SECRET: jwt_secret_riesgo_2026
+      JWT_REFRESH_SECRET: jwt_refresh_secret_riesgo_2026
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - riesgo-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: riesgo-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      PUBLIC_API_URL: http://localhost:3001/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+    networks:
+      - riesgo-network
+
+networks:
+  riesgo-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
