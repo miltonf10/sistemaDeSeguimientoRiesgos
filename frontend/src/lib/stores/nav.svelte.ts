@@ -25,7 +25,7 @@ export const modules: ModuleDef[] = [
     nav: [
       { icon: 'home', label: 'Dashboard', route: '/isms' },
       { icon: 'git-branch', label: 'Procesos', route: '/isms/procesos' },
-      { icon: 'server', label: 'Activos', route: '/isms/activos' },
+      { icon: 'server', label: 'Activos', route: '/isms/activos/nuevo' },
       { icon: 'file-text', label: 'Documentos', route: '/isms/documentos' },
       { icon: 'zap', label: 'Riesgos', route: '/isms/riesgos' },
       { icon: 'alert-triangle', label: 'Amenazas', route: '/isms/amenazas' },

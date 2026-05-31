@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
+let refreshPromise: Promise<void> | null = null;
 
 export function initTokens() {
   if (browser) {
@@ -51,28 +52,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response = await fetch(`${API_URL}${path}`, { ...options, headers, signal: controller.signal }).finally(() => clearTimeout(timeout));
 
   if (response.status === 401 && refreshToken) {
-    try {
-      const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (refreshResponse.ok) {
-        const data = await refreshResponse.json();
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        const resp = await fetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!resp.ok) {
+          clearTokens();
+          if (browser) window.location.href = '/login';
+          throw new Error('Sesión expirada');
+        }
+        const data = await resp.json();
         setTokens(data.accessToken, refreshToken);
-        headers['Authorization'] = `Bearer ${data.accessToken}`;
-        response = await fetch(`${API_URL}${path}`, { ...options, headers });
-      } else {
-        clearTokens();
-        if (browser) window.location.href = '/login';
-        throw new Error('Sesión expirada');
-      }
-    } catch {
-      clearTokens();
-      if (browser) window.location.href = '/login';
-      throw new Error('Sesión expirada');
+      })().finally(() => { refreshPromise = null; });
     }
+    await refreshPromise;
+    headers['Authorization'] = `Bearer ${accessToken}`;
+    response = await fetch(`${API_URL}${path}`, { ...options, headers });
   }
 
   if (!response.ok) {
