@@ -112,6 +112,7 @@ export const api = {
   },
   activos: {
     list: () => request<any[]>('/activos'),
+    getById: (id: string) => request<any>(`/activos/${id}`),
     create: (data: any) => request<any>('/activos', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/activos/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     remove: (id: string) => request<any>(`/activos/${id}`, { method: 'DELETE' }),
