@@ -23,13 +23,17 @@
 		initTokens();
 	});
 
+	import { browser } from '$app/environment';
+
 	$effect(() => {
 		const firstSeg = $page.url.pathname.split('/')[1]?.toLowerCase() || '';
 		const id = moduleFromPath[firstSeg];
 		if (id && navStore.activeModuleId !== id) {
 			navStore.activeModuleId = id;
 		}
-		document.documentElement.dataset.module = navStore.activeModuleId;
+		if (browser) {
+			document.documentElement.dataset.module = navStore.activeModuleId;
+		}
 	});
 </script>
 

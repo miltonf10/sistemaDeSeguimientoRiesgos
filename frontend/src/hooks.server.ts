@@ -15,7 +15,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   return resolve(event, {
     transformPageChunk: ({ html }) => {
       if (moduleId) {
-        return html.replace('<html lang="es">', `<html lang="es" data-module="${moduleId}">`);
+        return html.replace('<html', `<html data-module="${moduleId}"`);
       }
       return html;
     }
