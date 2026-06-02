@@ -9,6 +9,31 @@
   let activos = $state<any[]>([]);
   let loading = $state(true);
 
+  let showModal = $state(false);
+  let exporting = $state(false);
+
+  let dependencias = $state<any[]>([]);
+  let macroprocesos = $state<any[]>([]);
+  let procesos = $state<any[]>([]);
+
+  let filtros = $state({
+    dependenciaId: '',
+    macroprocesoId: '',
+    procesoId: '',
+    tipo: '',
+    criticidad: '',
+    fechaDesde: '',
+    fechaHasta: '',
+  });
+
+  const tipos = [
+    'Hardware', 'Software', 'Base de Datos', 'Documento', 'Aplicación',
+    'Servicio Tecnológico', 'Infraestructura Tecnológica', 'Equipo de Comunicaciones',
+    'Información Física', 'Información Digital', 'Medio Magnético', 'Repositorio Digital',
+  ];
+
+  const criticidades = ['Baja', 'Media', 'Alta', 'Muy Alta', 'Crítica'];
+
   const riskStyles: Record<string, string> = {
     Alto: 'bg-red-50 text-red-700 border-red-200',
     Medio: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -69,11 +94,62 @@
     finally { loading = false; }
   }
 
+  async function loadDependencias() {
+    try { dependencias = await api.dependencias.list(); }
+    catch (e: any) { console.error(e); }
+  }
+
+  async function onDependenciaChange() {
+    filtros.macroprocesoId = '';
+    filtros.procesoId = '';
+    macroprocesos = [];
+    procesos = [];
+    if (!filtros.dependenciaId) return;
+    try { macroprocesos = await api.macroprocesos.findByDependencia(filtros.dependenciaId); }
+    catch (e: any) { console.error(e); }
+  }
+
+  async function onMacroprocesoChange() {
+    filtros.procesoId = '';
+    procesos = [];
+    if (!filtros.macroprocesoId) return;
+    try {
+      const all = await api.procesos.list();
+      procesos = all.filter((p: any) => p.macroprocesoId === filtros.macroprocesoId);
+    } catch (e: any) { console.error(e); }
+  }
+
+  function limpiarFiltros() {
+    filtros = { dependenciaId: '', macroprocesoId: '', procesoId: '', tipo: '', criticidad: '', fechaDesde: '', fechaHasta: '' };
+    macroprocesos = [];
+    procesos = [];
+  }
+
+  async function handleExportar() {
+    exporting = true;
+    try {
+      const blob = await api.reportes.exportarActivosExcel(filtros);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.download = `Inventario_Activos_Informacion_${fecha}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showModal = false;
+    } catch (e: any) {
+      alert(e.message);
+    } finally { exporting = false; }
+  }
+
   onMount(() => {
     (window as any).__editActivo = (id: string) => {
       window.location.href = baseEditUrl + id;
     };
     load();
+    loadDependencias();
     return () => { delete (window as any).__editActivo; };
   });
 </script>
@@ -101,6 +177,13 @@
         <Icon name="refresh-cw" class="w-3.5 h-3.5" />
         Actualizar
       </button>
+      <button
+        onclick={() => showModal = true}
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+      >
+        <Icon name="file-down" class="w-3.5 h-3.5" />
+        Exportar Excel
+      </button>
       <a
         href="/{$page.params.module}/activos/nuevo"
         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg transition"
@@ -121,3 +204,118 @@
     <DataTable {columns} data={activos} searchable={true} pageSize={10} />
   {/if}
 </div>
+
+<!-- Modal filtros -->
+{#if showModal}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onclick={() => showModal = false}>
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-lg mx-4" onclick={(e) => e.stopPropagation()}>
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+          <Icon name="file-down" class="w-5 h-5" style="color: var(--color-module-primary);" />
+          <h2 class="text-base font-semibold text-gray-900">Exportar Inventario de Activos</h2>
+        </div>
+        <button onclick={() => showModal = false} class="text-gray-400 hover:text-gray-600 transition cursor-pointer p-1">
+          <Icon name="x" class="w-5 h-5" />
+        </button>
+      </div>
+
+      <div class="px-6 py-4 space-y-4">
+        <p class="text-xs text-gray-500">Filtros opcionales — si no selecciona ninguno se exportarán todos los activos.</p>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Dependencia</label>
+          <select bind:value={filtros.dependenciaId} onchange={onDependenciaChange}
+            class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="">Todas</option>
+            {#each dependencias as d}
+              <option value={d.id}>{d.nombre}</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Macroproceso</label>
+            <select bind:value={filtros.macroprocesoId} onchange={onMacroprocesoChange}
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Todos</option>
+              {#each macroprocesos as m}
+                <option value={m.id}>{m.nombre}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Proceso</label>
+            <select bind:value={filtros.procesoId}
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Todos</option>
+              {#each procesos as p}
+                <option value={p.id}>{p.nombre}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Tipo de activo</label>
+            <select bind:value={filtros.tipo}
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Todos</option>
+              {#each tipos as t}
+                <option>{t}</option>
+              {/each}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Criticidad</label>
+            <select bind:value={filtros.criticidad}
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Todas</option>
+              {#each criticidades as c}
+                <option>{c}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Fecha desde</label>
+            <input type="date" bind:value={filtros.fechaDesde}
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Fecha hasta</label>
+            <input type="date" bind:value={filtros.fechaHasta}
+              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-900 outline-none focus:ring-2 focus:ring-primary/20" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+        <button onclick={limpiarFiltros}
+          class="text-xs text-gray-500 hover:text-gray-700 transition cursor-pointer underline underline-offset-2">
+          Limpiar filtros
+        </button>
+        <div class="flex items-center gap-2">
+          <button onclick={() => showModal = false}
+            class="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+            Cancelar
+          </button>
+          <button onclick={handleExportar} disabled={exporting}
+            class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white rounded-lg transition cursor-pointer disabled:opacity-60"
+            style="background-color: var(--color-module-primary);">
+            {#if exporting}
+              <span class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              Exportando...
+            {:else}
+              <Icon name="file-down" class="w-3.5 h-3.5" />
+              Exportar
+            {/if}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

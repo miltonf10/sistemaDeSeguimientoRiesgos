@@ -71,13 +71,13 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Correo electr&oacute;nico</label>
             <input type="email" bind:value={email} placeholder="admin@entidad.gov.co"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition bg-gray-50/50 text-sm" required />
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition bg-gray-50 text-sm text-gray-900" required />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Contrase&ntilde;a</label>
             <div class="relative">
               <input type={showPw ? 'text' : 'password'} bind:value={password} placeholder="••••••••"
-                class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition bg-gray-50/50 text-sm" required />
+                class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition bg-gray-50 text-sm text-gray-900" required />
               <button type="button" onclick={() => showPw = !showPw} class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                 {#if showPw}<Icon name="eye-off" class="w-4 h-4" />{:else}<Icon name="eye" class="w-4 h-4" />{/if}
               </button>
@@ -93,7 +93,7 @@
             {#if loading}
               <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             {/if}
-            {loading ? 'Iniciando sesi&oacute;n...' : 'Iniciar Sesi&oacute;n'}
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
       </div>

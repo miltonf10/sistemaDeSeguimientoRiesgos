@@ -145,6 +145,20 @@ export const api = {
     riesgosPorProceso: () => request<any[]>('/reportes/riesgos-por-proceso'),
     riesgosPorDependencia: () => request<any[]>('/reportes/riesgos-por-dependencia'),
     riesgosAltos: () => request<any[]>('/reportes/riesgos-altos'),
+    exportarActivosExcel: async (filtros: any): Promise<Blob> => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+      const response = await fetch(`${API_URL}/reportes/activos-excel`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(filtros),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Error al generar el reporte' }));
+        throw new Error(err.message || 'Error al generar el reporte');
+      }
+      return response.blob();
+    },
   },
   planesAccion: {
     list: () => request<any[]>('/planes-accion'),

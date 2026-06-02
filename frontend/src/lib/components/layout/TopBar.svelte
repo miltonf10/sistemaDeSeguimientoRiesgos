@@ -61,7 +61,7 @@
 
     <div class="relative">
       <button onclick={() => showUserMenu = !showUserMenu} class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition cursor-pointer">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style="background-color: var(--color-module-primary);">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style="background-color: #6B7280;">
           {($currentUser?.nombre || 'U')[0]}
         </div>
         <div class="hidden sm:block text-left">
@@ -77,7 +77,7 @@
             <p class="text-xs text-white/50">{$currentUser?.email || ''}</p>
           </div>
           <a href="/usuarios" class="flex items-center gap-2 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 transition"><Icon name="user" class="w-4 h-4" /> Mi Perfil</a>
-          <button class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition cursor-pointer" onclick={logout}><Icon name="log-out" class="w-4 h-4" /> Cerrar Sesi&oacute;n</button>
+          <button class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition cursor-pointer" onclick={logout}><Icon name="log-out" class="w-4 h-4" /> Cerrar Sesión</button>
         </div>
       {/if}
     </div>
